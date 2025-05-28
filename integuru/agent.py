@@ -34,6 +34,7 @@ class IntegrationAgent:
         self.curl_to_id_dict: Dict[str, str] = {}
         self.cookie_to_id_dict: Dict[str, str] = {}
         self.dag_manager: DAGManager = DAGManager()
+        self.uuid_pattern = r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
 
     def end_url_identify_agent(self, state: AgentState) -> AgentState:
         """
@@ -143,6 +144,13 @@ class IntegrationAgent:
 
         return state
 
+    def replace_uuid_with_variable(self, url: str) -> str:
+        """
+        Replace UUIDs in URLs with variable placeholders
+        """
+        import re
+        return re.sub(self.uuid_pattern, '{uuid}', url)
+
     def dynamic_part_identifying_agent(self, state: AgentState) -> AgentState:
         """
         Identify dynamic parts present in the cURL command
@@ -156,6 +164,12 @@ class IntegrationAgent:
             state[self.IN_PROCESS_NODE_KEY] = in_process_node_id
             return state
         
+        # Replace UUIDs with variable placeholders in the URL
+        url = request.url
+        url_with_variables = self.replace_uuid_with_variable(url)
+        if url != url_with_variables:
+            request.url = url_with_variables
+            curl = request.to_minified_curl_command()
 
         input_variables = state[self.INPUT_VARIABLES_KEY]            
 
